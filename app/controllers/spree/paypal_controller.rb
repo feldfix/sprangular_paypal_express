@@ -36,11 +36,11 @@ module Spree
           redirect_to provider.express_checkout_url(pp_response, :useraction => 'commit')
         else
           flash[:error] = Spree.t('flash.generic_error', :scope => 'paypal', :reasons => pp_response.errors.map(&:long_message).join(" "))
-          redirect_to '/#!/checkout'
+          redirect_to sprangular_checkout_url(order.state)
         end
       rescue SocketError
         flash[:error] = Spree.t('flash.connection_failed', :scope => 'paypal')
-        redirect_to '/#!/checkout'
+        redirect_to sprangular_checkout_url(order.state)
       end
     end
 
@@ -59,9 +59,9 @@ module Spree
         flash.notice = Spree.t(:order_processed_successfully)
         flash[:commerce_tracking] = "nothing special"
         session[:order_id] = nil
-        redirect_to '/#!/checkout/complete'
+        redirect_to sprangular_checkout_url(order.state)
       else
-        redirect_to checkout_state_path(order.state)
+        redirect_to sprangular_checkout_url(order.state)
       end
     end
 
@@ -69,10 +69,14 @@ module Spree
       flash[:notice] = Spree.t('flash.cancel', :scope => 'paypal')
       order = current_order || raise(ActiveRecord::RecordNotFound)
       # TODO: add 'cancel' page to return from one click
-      redirect_to checkout_state_path(order.state, paypal_cancel_token: params[:token])
+      redirect_to sprangular_checkout_url(order.state), paypal_cancel_token: params[:token]
     end
 
     private
+
+    def sprangular_checkout_url(state)
+      "/#!/checkout/#{state}"
+    end
 
     def line_item(item)
       {
