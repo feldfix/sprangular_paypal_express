@@ -1,0 +1,5 @@
+require 'spree_core'
+require 'sprangular'
+require 'sprangular_paypal_express/version'
+require 'sprangular_paypal_express/engine'
+require 'sass/rails'

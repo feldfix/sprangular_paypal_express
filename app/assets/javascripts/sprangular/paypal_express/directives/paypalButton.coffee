@@ -1,6 +1,6 @@
 'use strict'
 
-Sprangular.directive 'paypalButton', ->
+angular.module('Sprangular.PaypalExpress').directive 'paypalButton', ->
   restrict: 'E'
   scope:
     user: '='

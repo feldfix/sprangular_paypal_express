@@ -5,6 +5,7 @@ if ENV["COVERAGE"]
   require 'simplecov-rcov'
   SimpleCov.formatter = SimpleCov::Formatter::RcovFormatter
   SimpleCov.start do
+     add_filter 'spec/dummy'
     exlist.each do |p|
       add_filter p
     end
