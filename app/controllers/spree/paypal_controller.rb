@@ -1,6 +1,6 @@
 module Spree
-  class PaypalController < StoreController
-    ssl_allowed
+  class PaypalController < Sprangular::BaseController
+    # ssl_allowed
 
     def express
       order = current_order || raise(ActiveRecord::RecordNotFound)
@@ -36,30 +36,30 @@ module Spree
           redirect_to provider.express_checkout_url(pp_response, :useraction => 'commit')
         else
           flash[:error] = Spree.t('flash.generic_error', :scope => 'paypal', :reasons => pp_response.errors.map(&:long_message).join(" "))
-          redirect_to checkout_state_path(:payment)
+          redirect_to '/#!/checkout'
         end
       rescue SocketError
         flash[:error] = Spree.t('flash.connection_failed', :scope => 'paypal')
-        redirect_to checkout_state_path(:payment)
+        redirect_to '/#!/checkout'
       end
     end
 
     def confirm
       order = current_order || raise(ActiveRecord::RecordNotFound)
       order.payments.create!({
-        :source => Spree::PaypalExpressCheckout.create({
-          :token => params[:token],
-          :payer_id => params[:PayerID]
-        }),
-        :amount => order.total,
-        :payment_method => payment_method
+                               :source => Spree::PaypalExpressCheckout.create({
+                                                                                :token => params[:token],
+                                                                                :payer_id => params[:PayerID]
+                               }),
+                               :amount => order.total,
+                               :payment_method => payment_method
       })
       order.next
       if order.complete?
         flash.notice = Spree.t(:order_processed_successfully)
         flash[:commerce_tracking] = "nothing special"
         session[:order_id] = nil
-        redirect_to completion_route(order)
+        redirect_to '/#!/checkout/complete'
       else
         redirect_to checkout_state_path(order.state)
       end
@@ -68,6 +68,7 @@ module Spree
     def cancel
       flash[:notice] = Spree.t('flash.cancel', :scope => 'paypal')
       order = current_order || raise(ActiveRecord::RecordNotFound)
+      # TODO: add 'cancel' page to return from one click
       redirect_to checkout_state_path(order.state, paypal_cancel_token: params[:token])
     end
 
@@ -75,14 +76,14 @@ module Spree
 
     def line_item(item)
       {
-          :Name => item.product.name,
-          :Number => item.variant.sku,
-          :Quantity => item.quantity,
-          :Amount => {
-              :currencyID => item.order.currency,
-              :value => item.price
-          },
-          :ItemCategory => "Physical"
+        :Name => item.product.name,
+        :Number => item.variant.sku,
+        :Quantity => item.quantity,
+        :Amount => {
+          :currencyID => item.order.currency,
+          :value => item.price
+        },
+        :ItemCategory => "Physical"
       }
     end
 
@@ -157,14 +158,14 @@ module Spree
       return {} unless address_required?
 
       {
-          :Name => current_order.bill_address.try(:full_name),
-          :Street1 => current_order.bill_address.address1,
-          :Street2 => current_order.bill_address.address2,
-          :CityName => current_order.bill_address.city,
-          :Phone => current_order.bill_address.phone,
-          :StateOrProvince => current_order.bill_address.state_text,
-          :Country => current_order.bill_address.country.iso,
-          :PostalCode => current_order.bill_address.zipcode
+        :Name => current_order.bill_address.try(:full_name),
+        :Street1 => current_order.bill_address.address1,
+        :Street2 => current_order.bill_address.address2,
+        :CityName => current_order.bill_address.city,
+        :Phone => current_order.bill_address.phone,
+        :StateOrProvince => current_order.bill_address.state_text,
+        :Country => current_order.bill_address.country.iso,
+        :PostalCode => current_order.bill_address.zipcode
       }
     end
 
@@ -174,6 +175,24 @@ module Spree
 
     def address_required?
       payment_method.preferred_solution.eql?('Sole')
+    end
+
+    # This method is placed here so that the CheckoutController
+    # and OrdersController can both reference it (or any other controller
+    # which needs it)
+    def apply_coupon_code
+      if params[:order] && params[:order][:coupon_code]
+        @order.coupon_code = params[:order][:coupon_code]
+
+        handler = PromotionHandler::Coupon.new(@order).apply
+
+        if handler.error.present?
+          flash.now[:error] = handler.error
+          respond_with(@order) { |format| format.html { render :edit } } and return
+        elsif handler.success
+          flash[:success] = handler.success
+        end
+      end
     end
   end
 end
