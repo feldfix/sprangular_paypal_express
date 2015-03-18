@@ -10,14 +10,15 @@ angular.module('Sprangular.PaypalExpress').directive 'paypalButton', ->
     $scope.processing = false
     # Angular 1.4 syntax $cookies.get("XSRF-TOKEN")
     $scope.authenticityToken = $cookies['XSRF-TOKEN']
-    $scope.paymentMethodId = @_findPaymentMethodId()
 
     $scope.checkout = ->
       $scope.processing = true
 
-    _findPaymentMethodId: ->
-      paymentMethod = _.find Env.config.payment_methods, (method) -> method.name == 'paypal'
 
-      alert('Payment method "paypal" not found') unless paymentMethod
+    $scope.paymentMethodId = ->
+      console.log Env.config.payment_methods
+      paymentMethod = _.find Env.config.payment_methods, (method) -> method.type == 'Spree::Gateway::PayPalExpress'
+
+      alert('Payment method "Spree::Gateway::PayPalExpress" not found') unless paymentMethod
 
       paymentMethod.id
