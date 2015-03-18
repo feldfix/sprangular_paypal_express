@@ -1,4 +1,4 @@
-//= require spree/frontend
+
 
 SpreePaypalExpress = {
   updateSaveAndContinueVisibility: function() {
